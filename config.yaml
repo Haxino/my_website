@@ -72,7 +72,7 @@ params:
       - name: Blogs
         url: blogs
       - name: Generic Blog
-        url: blogs/ipsum
+        url: blogs/xiaohan
       - name: Elements
         url: elements.html
     menu: Menu
@@ -82,9 +82,9 @@ params:
     enable: yes
     showcase:
       - image: pic01.jpg
-        subtitle: Ipsum Dolor Sit Amet
-        title: Aliquam
-        url: blogs/aliquam
+        subtitle: my subtitle
+        title: Xiaohan
+        url: blogs/xiaohan
       - image: pic02.jpg
         subtitle: Feugiat Amet Tempus
         title: Tempus
