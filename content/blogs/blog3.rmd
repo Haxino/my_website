@@ -1,0 +1,98 @@
+---
+categories:
+- ""
+- ""
+date: "2017-10-31T22:26:13-05:00"
+description: Nullam et orci eu lorem consequat tincidunt vivamus et sagittis magna
+  sed nunc rhoncus condimentum sem. In efficitur ligula tate urna. Maecenas massa
+  sed magna lacinia magna pellentesque lorem ipsum dolor. Nullam et orci eu lorem
+  consequat tincidunt. Vivamus et sagittis tempus.
+draft: false
+image: pic08.jpg
+keywords: ""
+slug: imdb_ratings
+title: IMDB ratings
+---
+
+```{r, setup, echo=FALSE}
+knitr::opts_chunk$set(
+  message = FALSE, 
+  warning = FALSE, 
+  tidy=FALSE,     # display code as typed
+  size="small")   # slightly smaller font for code
+options(digits = 3)
+
+# default figure size
+knitr::opts_chunk$set(
+  fig.width=6.75, 
+  fig.height=6.75,
+  fig.align = "center"
+)
+```
+
+
+```{r load-libraries, echo=FALSE}
+library(tidyverse)  # Load ggplot2, dplyr, and all the other tidyverse packages
+library(mosaic)
+library(ggthemes)
+library(GGally)
+library(readxl)
+library(here)
+library(skimr)
+library(janitor)
+library(broom)
+library(tidyquant)
+library(infer)
+library(openintro)
+```
+# IMDB ratings: Differences between directors
+
+Recall the IMBD ratings data. I would like you to explore whether the mean IMDB rating for Steven Spielberg and Tim Burton are the same or not. I have already calculated the confidence intervals for the mean ratings of these two directors and as you can see they overlap. 
+
+First, we reproduce the graph above. In addition, we will run a hypothesis test, using both the `t.test` command and the `infer` package to simulate from a null distribution, where we assume zero difference between the two.
+
+>Null hypothesis: Spielberg and Burton have the same mean IMDB ratings. 
+Alternative Hypothesis: Speilberg and Burton doesn't have the same mean IMDB ratings. 
+The sample mean of Spielberg's mean IMDB ratings is 7.57 and the confidence interval range from 7.27 to 7.87. The sample mean of Burton's mean IMDB ratings is 6.93 and the confidence interval from 6.53 to 7.33. 
+The t-stat for the hypothesis test is 0.01, which is smaller than 95% confidence interval p-value. The 95% confidence interval range is from 0.16 to 1.13, so 0 is out of the confidence interval. Therefore, there's enough evidence for us to conclude that we can do that Speilberg and Burton doesn't have the same population mean IMDB ratings.
+
+You can load the data and examine its structure
+
+```{r load-movies-data}
+movies <- read_csv("D:/Haxino/Documents/LBS/2021Fall/Applied_Stats/am01/data/movies.csv")
+glimpse(movies)
+```
+
+```{r}
+grouped_table <- movies %>% filter(director %in% c("Steven Spielberg", "Tim Burton")) %>% group_by(director)
+clean_table <- grouped_table  %>% summarise(mean = mean(rating), sd = sd(rating), sample_size = n(), se = sd/sqrt(sample_size), t_critical = qt(0.975, sample_size -1), lower = mean - t_critical * se, upper = mean + t_critical * se)
+
+clean_table %>% ggplot() + 
+  geom_errorbarh(aes(y = director, xmax = upper, xmin = lower, colour = director), width = 0.1, size = 2) +
+  geom_point(aes(x = mean, y = director, colour = director), size = 5) + 
+  geom_text(x = clean_table$upper, y = clean_table$director, label = round(clean_table$upper,2), vjust = -2, size = 4) +
+  geom_text(x = clean_table$lower, y = clean_table$director, label = round(clean_table$lower,2), vjust = -2, size = 4) +
+  geom_text(x = clean_table$mean, y = clean_table$director, label = round(clean_table$mean,2), vjust = -2, size = 5) +
+  geom_rect(xmin = 7.27, xmax = 7.33, ymin = -Inf, ymax = Inf, alpha = 0.2) +
+  labs(
+    title = "Do Speilberg and Burton have the same mean IMDB ratings",
+    subtitle = "95% percent confidence interval overlap",
+    x = "mean IMDB ratings"
+  ) +
+  theme_bw()
+```
+
+```{r}
+# Hypothesis Test
+## t.test()
+t.test(rating ~ director ,data = grouped_table)
+
+## infer 
+set.seed(1234)
+infer_table <- grouped_table %>% specify(rating ~ director) %>% hypothesise(null = "independence") %>% generate(reps = 1000, type = "permute") %>% calculate(stat = "diff in means") 
+
+observed_stat <- grouped_table %>% specify(rating ~ director) %>% calculate(stat = "diff in means")
+
+infer_table %>% get_pvalue(obs_stat = observed_stat, direction = "both")
+
+```

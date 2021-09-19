@@ -1,0 +1,127 @@
+---
+categories:
+- ""
+- ""
+date: "2017-10-31T21:28:43-05:00"
+description: "1. download data from Internet; 2. calculate trump vote rate and vacciantion rate seperatly; 3. merge the results into one table; 4. draw the scatter plot"
+draft: false
+image: pic10.jpg
+keywords: ""
+slug: vaccination_trump
+title: Vaccination Rate vs. Trump Vote Rate
+---
+
+```{r, setup, echo=FALSE}
+knitr::opts_chunk$set(
+  message = FALSE, 
+  warning = FALSE, 
+  tidy=FALSE,     # display code as typed
+  size="small")   # slightly smaller font for code
+options(digits = 3)
+
+# default figure size
+knitr::opts_chunk$set(
+  fig.width=6.75, 
+  fig.height=6.75,
+  fig.align = "center"
+)
+```
+
+```{r load-libraries, warning=FALSE, message=FALSE, echo=FALSE}
+library(tidyverse)  # Load ggplot2, dplyr, and all the other tidyverse packages
+library(mosaic)
+library(ggthemes)
+library(lubridate)
+library(fivethirtyeight)
+library(here)
+library(skimr)
+library(janitor)
+library(vroom)
+library(tidyquant)
+library(rvest) # to scrape wikipedia page
+library(kableExtra)
+library(reshape2)
+```
+
+# Challenge 1: Replicating a chart
+
+The purpose of this exercise is to reproduce a plot using your `dplyr` and `ggplot2` skills. Read the article [The Racial Factor: There's 77 Counties Which Are Deep Blue But Also Low-Vaxx. Guess What They Have In Common?](https://acasignups.net/21/07/18/racial-factor-theres-77-counties-which-are-deep-blue-also-low-vaxx-guess-what-they-have) and have a look at the attached figure.
+
+
+```{r challenge1, echo=FALSE, out.width="90%"}
+knitr::include_graphics(here::here("images", "vaxxes_by_state_red_blue_every_county_070321_1.jpeg"), error = FALSE)
+```
+
+You don't have to worry about the blue-red backgrouns and don't worry about replicating it exactly, try and see how far you can get. You're encouraged to work together if you want to and exchange tips/tricks you figured out-- and even though the figure in the original article is from early July 2021, you can use the most recent data.
+
+Some hints to get you started:
+
+1.  To get vaccination by county, we will use [data from the CDC](https://data.cdc.gov/Vaccinations/COVID-19-Vaccinations-in-the-United-States-County/8xkx-amqh)
+2.  You need to get [County Presidential Election Returns 2000-2020](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/VOQCHQ)
+3.  Finally, you also need an estimate of the [population of each county](https://www.ers.usda.gov/webdocs/DataFiles/48747/PopulationEstimates.csv?v=2232)
+
+```{r, echo=FALSE, cache=TRUE}
+# Download CDC vaccination by county
+cdc_url <- "https://data.cdc.gov/api/views/8xkx-amqh/rows.csv?accessType=DOWNLOAD"
+vaccinations <- vroom(cdc_url) %>% 
+  janitor::clean_names() %>%
+  filter(fips != "UNK") # remove counties that have an unknown (UNK) FIPS code
+
+# Download County Presidential Election Returns
+# https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/VOQCHQ
+election2020_results <- vroom("D:/Haxino/Documents/LBS/2021Fall/Applied_Stats/am01/data/countypres_2000-2020.csv") %>%
+  janitor::clean_names() %>%
+
+  # just keep the results for the 2020 election
+  filter(year == "2020") %>%
+
+  # change original name county_fips to fips, to be consistent with the other two files
+  rename (fips = county_fips)
+
+# Download county population data
+population_url <- "https://www.ers.usda.gov/webdocs/DataFiles/48747/PopulationEstimates.csv?v=2232"
+population <- vroom(population_url) %>%
+  janitor::clean_names() %>%
+
+  # select the latest data, namely 2019
+  select(fips = fip_stxt, pop_estimate_2019) %>%
+
+  # pad FIPS codes with leading zeros, so they are always made up of 5 characters
+  mutate(fips = stringi::stri_pad_left(fips, width=5, pad = "0"))
+```
+
+```{r, echo=FALSE, cache=TRUE}
+#create trump table
+trump_vote <- election2020_results %>% group_by(fips) %>% filter(candidate == "DONALD J TRUMP") %>% summarise(votes = sum(candidatevotes)*100)
+```
+
+
+```{r, echo=FALSE, cache=TRUE}
+# create vaccination table
+vaccination_number <- vaccinations %>% filter(date == '09/02/2021') %>% group_by(fips) %>%  select(fips, series_complete_yes) %>% summarise(series_complete_yes = sum(series_complete_yes)*100)
+
+#vaccination_rate <- left_join(vaccination_number, population, by = 'fips') %>% mutate(vaccination_rate = series_complete_yes/pop_estimate_2019) %>% select(fips, vaccination_rate)
+```
+
+
+```{r, echo=FALSE, cache=TRUE}
+# create full table
+full_table <- left_join(vaccination_number, trump_vote, by = 'fips') %>% left_join(population, by = 'fips') %>% mutate(vaccination_rate = series_complete_yes/pop_estimate_2019, trump_vote_rate = votes/pop_estimate_2019) %>% filter(vaccination_rate <= 100, trump_vote_rate<= 100)
+#paste0(round(weight/sum(weight)*100,2),"%"))
+```
+
+```{r}
+# reproduce graph
+full_table %>% ggplot(aes(x = trump_vote_rate, y = vaccination_rate, size = pop_estimate_2019)) + 
+  geom_point(alpha = 0.3) +
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+  scale_x_continuous(labels = scales::percent_format(scale = 1)) +
+  theme_bw() +
+    labs(
+     title = "COVID-19 VACCINATION LEVELS OUT OF TOTAL POPULATION BY COUNTY",
+     x = "2020 Trump Vote %",
+     y = "% of Total Population Vaccination"
+    )+
+  theme(plot.caption = element_text(hjust = 0))
+NULL
+```

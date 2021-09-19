@@ -1,0 +1,88 @@
+---
+categories:
+- ""
+- ""
+date: "2017-10-31T22:26:13-05:00"
+description: Nullam et orci eu lorem consequat tincidunt vivamus et sagittis magna
+  sed nunc rhoncus condimentum sem. In efficitur ligula tate urna. Maecenas massa
+  sed magna lacinia magna pellentesque lorem ipsum dolor. Nullam et orci eu lorem
+  consequat tincidunt. Vivamus et sagittis tempus.
+draft: false
+image: pic08.jpg
+keywords: ""
+slug: imdb_ratings
+title: IMDB ratings
+---
+
+<script src="/rmarkdown-libs/header-attrs/header-attrs.js"></script>
+
+
+<div id="imdb-ratings-differences-between-directors" class="section level1">
+<h1>IMDB ratings: Differences between directors</h1>
+<p>Recall the IMBD ratings data. I would like you to explore whether the mean IMDB rating for Steven Spielberg and Tim Burton are the same or not. I have already calculated the confidence intervals for the mean ratings of these two directors and as you can see they overlap.</p>
+<p>First, we reproduce the graph above. In addition, we will run a hypothesis test, using both the <code>t.test</code> command and the <code>infer</code> package to simulate from a null distribution, where we assume zero difference between the two.</p>
+<blockquote>
+<p>Null hypothesis: Spielberg and Burton have the same mean IMDB ratings.
+Alternative Hypothesis: Speilberg and Burton doesn’t have the same mean IMDB ratings.
+The sample mean of Spielberg’s mean IMDB ratings is 7.57 and the confidence interval range from 7.27 to 7.87. The sample mean of Burton’s mean IMDB ratings is 6.93 and the confidence interval from 6.53 to 7.33.
+The t-stat for the hypothesis test is 0.01, which is smaller than 95% confidence interval p-value. The 95% confidence interval range is from 0.16 to 1.13, so 0 is out of the confidence interval. Therefore, there’s enough evidence for us to conclude that we can do that Speilberg and Burton doesn’t have the same population mean IMDB ratings.</p>
+</blockquote>
+<p>You can load the data and examine its structure</p>
+<pre class="r"><code>movies &lt;- read_csv(&quot;D:/Haxino/Documents/LBS/2021Fall/Applied_Stats/am01/data/movies.csv&quot;)
+glimpse(movies)</code></pre>
+<pre><code>## Rows: 2,961
+## Columns: 11
+## $ title               &lt;chr&gt; &quot;Avatar&quot;, &quot;Titanic&quot;, &quot;Jurassic World&quot;, &quot;The Avenge~
+## $ genre               &lt;chr&gt; &quot;Action&quot;, &quot;Drama&quot;, &quot;Action&quot;, &quot;Action&quot;, &quot;Action&quot;, &quot;~
+## $ director            &lt;chr&gt; &quot;James Cameron&quot;, &quot;James Cameron&quot;, &quot;Colin Trevorrow~
+## $ year                &lt;dbl&gt; 2009, 1997, 2015, 2012, 2008, 1999, 1977, 2015, 20~
+## $ duration            &lt;dbl&gt; 178, 194, 124, 173, 152, 136, 125, 141, 164, 93, 1~
+## $ gross               &lt;dbl&gt; 7.61e+08, 6.59e+08, 6.52e+08, 6.23e+08, 5.33e+08, ~
+## $ budget              &lt;dbl&gt; 2.37e+08, 2.00e+08, 1.50e+08, 2.20e+08, 1.85e+08, ~
+## $ cast_facebook_likes &lt;dbl&gt; 4834, 45223, 8458, 87697, 57802, 37723, 13485, 920~
+## $ votes               &lt;dbl&gt; 886204, 793059, 418214, 995415, 1676169, 534658, 9~
+## $ reviews             &lt;dbl&gt; 3777, 2843, 1934, 2425, 5312, 3917, 1752, 1752, 35~
+## $ rating              &lt;dbl&gt; 7.9, 7.7, 7.0, 8.1, 9.0, 6.5, 8.7, 7.5, 8.5, 7.2, ~</code></pre>
+<pre class="r"><code>grouped_table &lt;- movies %&gt;% filter(director %in% c(&quot;Steven Spielberg&quot;, &quot;Tim Burton&quot;)) %&gt;% group_by(director)
+clean_table &lt;- grouped_table  %&gt;% summarise(mean = mean(rating), sd = sd(rating), sample_size = n(), se = sd/sqrt(sample_size), t_critical = qt(0.975, sample_size -1), lower = mean - t_critical * se, upper = mean + t_critical * se)
+
+clean_table %&gt;% ggplot() + 
+  geom_errorbarh(aes(y = director, xmax = upper, xmin = lower, colour = director), width = 0.1, size = 2) +
+  geom_point(aes(x = mean, y = director, colour = director), size = 5) + 
+  geom_text(x = clean_table$upper, y = clean_table$director, label = round(clean_table$upper,2), vjust = -2, size = 4) +
+  geom_text(x = clean_table$lower, y = clean_table$director, label = round(clean_table$lower,2), vjust = -2, size = 4) +
+  geom_text(x = clean_table$mean, y = clean_table$director, label = round(clean_table$mean,2), vjust = -2, size = 5) +
+  geom_rect(xmin = 7.27, xmax = 7.33, ymin = -Inf, ymax = Inf, alpha = 0.2) +
+  labs(
+    title = &quot;Do Speilberg and Burton have the same mean IMDB ratings&quot;,
+    subtitle = &quot;95% percent confidence interval overlap&quot;,
+    x = &quot;mean IMDB ratings&quot;
+  ) +
+  theme_bw()</code></pre>
+<p><img src="/blogs/blog3_files/figure-html/unnamed-chunk-1-1.png" width="648" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Hypothesis Test
+## t.test()
+t.test(rating ~ director ,data = grouped_table)</code></pre>
+<pre><code>## 
+##  Welch Two Sample t-test
+## 
+## data:  rating by director
+## t = 3, df = 31, p-value = 0.01
+## alternative hypothesis: true difference in means between group Steven Spielberg and group Tim Burton is not equal to 0
+## 95 percent confidence interval:
+##  0.16 1.13
+## sample estimates:
+## mean in group Steven Spielberg       mean in group Tim Burton 
+##                           7.57                           6.93</code></pre>
+<pre class="r"><code>## infer 
+set.seed(1234)
+infer_table &lt;- grouped_table %&gt;% specify(rating ~ director) %&gt;% hypothesise(null = &quot;independence&quot;) %&gt;% generate(reps = 1000, type = &quot;permute&quot;) %&gt;% calculate(stat = &quot;diff in means&quot;) 
+
+observed_stat &lt;- grouped_table %&gt;% specify(rating ~ director) %&gt;% calculate(stat = &quot;diff in means&quot;)
+
+infer_table %&gt;% get_pvalue(obs_stat = observed_stat, direction = &quot;both&quot;)</code></pre>
+<pre><code>## # A tibble: 1 x 1
+##   p_value
+##     &lt;dbl&gt;
+## 1   0.008</code></pre>
+</div>
