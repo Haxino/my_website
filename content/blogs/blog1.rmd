@@ -7,8 +7,8 @@ description: "1. download data from Internet; 2. calculate trump vote rate and v
 draft: false
 image: pic10.jpg
 keywords: ""
-slug: vaccination_trump
-title: Vaccination Rate vs. Trump Vote Rate
+slug: politics
+title: Politics
 ---
 
 ```{r, setup, echo=FALSE}
@@ -43,7 +43,7 @@ library(kableExtra)
 library(reshape2)
 ```
 
-# Challenge 1: Replicating a chart
+# Challenge 1: Vaccination Rate vs. Trump Vote Rate
 
 The purpose of this exercise is to reproduce a plot using your `dplyr` and `ggplot2` skills. Read the article [The Racial Factor: There's 77 Counties Which Are Deep Blue But Also Low-Vaxx. Guess What They Have In Common?](https://acasignups.net/21/07/18/racial-factor-theres-77-counties-which-are-deep-blue-also-low-vaxx-guess-what-they-have) and have a look at the attached figure.
 
@@ -125,3 +125,77 @@ full_table %>% ggplot(aes(x = trump_vote_rate, y = vaccination_rate, size = pop_
   theme(plot.caption = element_text(hjust = 0))
 NULL
 ```
+
+# Challange 2: Biden's Approval Margins
+
+As we saw in class, fivethirtyeight.com has detailed data on [all polls that track the president's approval](https://projects.fivethirtyeight.com/biden-approval-ratings)
+
+```{r, cache=TRUE}
+# Import approval polls data directly off fivethirtyeight website
+approval_polllist <- read_csv('https://projects.fivethirtyeight.com/biden-approval-data/approval_polllist.csv') 
+
+glimpse(approval_polllist)
+```
+
+```{r, cache=TRUE}
+# Use `lubridate` to fix dates, as they are given as charactersa
+clean_approval_polllist <- approval_polllist %>% mutate(
+  startdate = mdy(approval_polllist$startdate),
+  enddate = mdy(approval_polllist$enddate)  
+)
+
+```
+
+## Create a plot
+
+We calculate the average net approval rate (approve- disapprove) for each week since he got into office. We plot the net approval, along with its 95% confidence interval. 
+
+The plot should look like this:
+
+```{r trump_margins, echo=FALSE, out.width="100%"}
+# knitr::include_graphics(here::here("images", "biden_approval_margin.png"), error = FALSE)
+
+# clean table
+clean_data <- clean_approval_polllist %>% filter(subgroup == "All polls") %>%
+  select(enddate, approve, disapprove) %>%
+  mutate(week = week(enddate),
+         net_approval_rate = approve - disapprove)
+```
+
+
+```{r trump2, echo=FALSE, out.width="100%"}
+# calculate sample mean and CIs
+CI_table <- clean_data %>% group_by(week) %>% 
+  summarise(mean = mean(net_approval_rate), 
+            lower = mean - qt(0.975, n()-1) * (sd(net_approval_rate)/sqrt(n())),
+            upper = mean + qt(0.975, n()-1) * (sd(net_approval_rate)/sqrt(n()))
+  )
+
+# # merge sample mean with clean table
+# merge_table <- CI_table %>% pivot_longer(cols = 2:4, 
+#                             names_to = "indicator",
+#                             values_to = "value")
+
+
+# plot
+CI_table %>% ggplot() +
+  geom_line(aes(x = week, y = mean), colour = "Red", size = 0.2) +
+  geom_line(aes(x = week, y = lower), colour = "Red", size = 0.2) +
+  geom_line(aes(x = week, y = upper), colour = "Red", size = 0.2) +
+  geom_point(aes(x = week, y = mean), colour = "Red", size = 1) +
+  geom_smooth(aes(x = week, y = mean), colour = "Blue", size = 1, se = FALSE) +
+  geom_ribbon(aes(x = week, ymin = lower, ymax = upper), fill = "grey70", alpha = 0.3) +
+  geom_hline(aes(yintercept = 0), colour = "Orange", size = 2) +
+  labs(
+    title = "Estimating Approval Margin (approve-disapprove) for Joe Biden",
+    subtitle = "Weekly average of all polls",
+    x = "Week of the year",
+    y = "Average Approval Margin(Approve - Disapprove)"
+  )
+
+```
+`
+
+## Compare Confidence Intervals
+
+The confidence interval for week 4 is [5.28-23.60] in comparison to the confidence interval for week 25 which is [9.79-13.47]. The widths of these two confidence intervals are different, 18.32 for week 4 and 3.68 for week 25. This is due to the difference in sample size, as there were 8 polls in week 4 but 28 polls in week 25. 

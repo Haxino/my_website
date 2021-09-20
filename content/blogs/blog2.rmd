@@ -32,13 +32,151 @@ library(tidyverse)  # Load ggplot2, dplyr, and all the other tidyverse packages
 library(mosaic)
 library(ggthemes)
 library(lubridate)
-library(fivethirtyeight)
 library(here)
 library(skimr)
 library(janitor)
+library(httr)
+library(readxl)
 library(vroom)
-library(tidyquant)
-library(rvest) # to scrape wikipedia page
-library(kableExtra)
-library(reshape2)
 ```
+
+# Challenge 1: Excess rentals in TfL bike sharing
+
+
+```{r, get_tfl_data, cache=TRUE}
+url <- "https://data.london.gov.uk/download/number-bicycle-hires/ac29363e-e0cb-47cc-a97a-e216d900a6b0/tfl-daily-cycle-hires.xlsx"
+
+# Download TFL data to temporary file
+httr::GET(url, write_disk(bike.temp <- tempfile(fileext = ".xlsx")))
+
+# Use read_excel to read it as dataframe
+bike0 <- read_excel(bike.temp,
+                   sheet = "Data",
+                   range = cell_cols("A:B"))
+
+# change dates to get year, month, and week
+bike <- bike0 %>% 
+  clean_names() %>% 
+  rename (bikes_hired = number_of_bicycle_hires) %>% 
+  mutate (year = year(day),
+          month = lubridate::month(day, label = TRUE),
+          week = isoweek(day))
+```
+
+
+```{r tfl_month_year_grid, echo=FALSE, out.width="100%"}
+
+# knitr::include_graphics(here::here("images", "tfl_distributions_monthly.png"), error = FALSE)
+bike%>%
+  ggplot(aes(x=bikes_hired))+
+  geom_density()+
+  facet_grid(rows=vars(year),
+             cols = vars(month),
+             scales="free")+
+               theme(panel.grid = element_blank(),
+                     axis.text = element_text(size = 5),
+                     axis.title = element_blank(),
+                     axis.text.y = element_blank())+
+               labs(title = "Distribution of bikes hired by month and year",
+                    caption = "1",
+                    x="Bike Rentals")
+
+```
+
+It's interesting to note that during the 2020 lockdown, rentals decreased by half in comparison to other years. 
+
+```{r tfl_absolute_monthly_change, echo=FALSE, out.width="100%"}
+#knitr::include_graphics(here::here("images", "tfl_monthly.png"), error = FALSE)
+#library(lubridate)
+
+# tables
+table_1 <- bike %>%
+  filter(year>=2016 & year <=2019)%>%
+group_by(year,month) %>%
+summarise(monthly_bike=mean(bikes_hired))
+
+table_2 <- table_1 %>% 
+  group_by(month) %>% 
+  summarise(monthly_average = mean(monthly_bike))
+
+table_3 <- bike %>%
+  filter(year>=2016)%>%
+group_by(year,month) %>%
+summarise(monthly_bike2=mean(bikes_hired))
+
+merge_table <- left_join(table_3,table_2,by = "month")
+
+```
+
+
+```{r tfl_absolute_monthly_change2, echo=FALSE, out.width="100%"}
+#plot
+
+merge_table %>% ggplot(aes(x = month, group =1))+
+  geom_line(aes(x = month, y = monthly_bike2), color = "black") +
+  geom_line(aes(x = month, y=monthly_average), color = "blue", size = 2)+
+  geom_ribbon(
+             aes(ymin=monthly_average,ymax=pmin(monthly_bike2, monthly_average)),
+             fill="red", alpha = 0.3) +
+  geom_ribbon(
+             aes(ymin= monthly_bike2, ymax = pmin(monthly_bike2, monthly_average)),
+             fill="green", alpha = 0.3) +
+  facet_wrap(~ year)+
+  labs(title = "Monthly changes in TfL bike rentals", subtitle = "Change from monthly average shown in blue and calculated between 2016-2019", y="Bike rentals", x="Month")
+  
+
+```
+
+The second one looks at percentage changes from the expected level of weekly rentals. The two grey shaded rectangles correspond to Q2 (weeks 14-26) and Q4 (weeks 40-52).
+
+```{r tfl_percent_change, echo=FALSE, out.width="100%"}
+#knitr::include_graphics(here::here("images", "tfl_weekly.png"), error = FALSE)
+# tables
+
+table_1 <- bike%>%
+  filter(year >= 2016 & year <= 2019)%>%
+  group_by(year,week) %>%
+  summarise(mean=mean(bikes_hired))
+
+table_2 <- table_1 %>%
+  group_by(week) %>%
+  summarise(mean2=mean(mean))
+
+table_3 <-bike%>%
+   filter(year >= 2016)%>%
+   group_by(year,week) %>%
+   summarise(mean3=mean(bikes_hired))
+
+table_4 = table_3[-c(293),]
+  
+merge_table <- left_join(table_4, table_2, by="week")%>%
+   mutate(percentage_change = (mean3/mean2-1)*100,
+          color_id=if_else(as.numeric(percentage_change)>0,
+                            "green",
+                            "red"))
+
+```
+
+```{r tfl_percent_change2, echo=FALSE, out.width="100%"}
+# plot
+
+m <- 0
+ merge_table %>% 
+   ggplot(aes(x=week,y=percentage_change,group=1))+
+   geom_line(aes(y=percentage_change))+
+  geom_hline(yintercept = m) +
+   geom_ribbon(
+             aes(ymin=m,ymax=pmin(m, percentage_change)),
+             fill="red", alpha = 0.2) +
+  geom_ribbon(
+             aes(ymin= percentage_change, ymax = pmin(m, percentage_change)),
+             fill="green", alpha = 0.2) +
+   facet_wrap(~ year)+
+   labs(title = "Weekly changes in TfL bike rentals", subtitle = "% Change from weekly averages calculated between 2016-2019",y="%", x="Week")+
+   geom_rug(mapping = aes(color=color_id),sides="b" )+
+   scale_color_manual(values=c("green","red"))
+   
+
+
+```
+We used the mean to calculate our expected rentals as when we tested using the median it was quite different from the actual numbers.

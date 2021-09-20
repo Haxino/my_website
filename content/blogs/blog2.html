@@ -14,3 +14,34 @@ title: Rentals in TfL Bike Sharing
 <script src="/rmarkdown-libs/header-attrs/header-attrs.js"></script>
 
 
+<div id="challenge-1-excess-rentals-in-tfl-bike-sharing" class="section level1">
+<h1>Challenge 1: Excess rentals in TfL bike sharing</h1>
+<pre class="r"><code>url &lt;- &quot;https://data.london.gov.uk/download/number-bicycle-hires/ac29363e-e0cb-47cc-a97a-e216d900a6b0/tfl-daily-cycle-hires.xlsx&quot;
+
+# Download TFL data to temporary file
+httr::GET(url, write_disk(bike.temp &lt;- tempfile(fileext = &quot;.xlsx&quot;)))</code></pre>
+<pre><code>## Response [https://airdrive-secure.s3-eu-west-1.amazonaws.com/london/dataset/number-bicycle-hires/2021-08-23T14%3A32%3A29/tfl-daily-cycle-hires.xlsx?X-Amz-Algorithm=AWS4-HMAC-SHA256&amp;X-Amz-Credential=AKIAJJDIMAIVZJDICKHA%2F20210920%2Feu-west-1%2Fs3%2Faws4_request&amp;X-Amz-Date=20210920T084319Z&amp;X-Amz-Expires=300&amp;X-Amz-Signature=57a1f661582e34a8b48be1c256238c3249892de7722dec8da5bfc6aad3e5e462&amp;X-Amz-SignedHeaders=host]
+##   Date: 2021-09-20 08:44
+##   Status: 200
+##   Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+##   Size: 173 kB
+## &lt;ON DISK&gt;  C:\Users\Haxino\AppData\Local\Temp\RtmpW2BMQi\file25e0728b133c.xlsx</code></pre>
+<pre class="r"><code># Use read_excel to read it as dataframe
+bike0 &lt;- read_excel(bike.temp,
+                   sheet = &quot;Data&quot;,
+                   range = cell_cols(&quot;A:B&quot;))
+
+# change dates to get year, month, and week
+bike &lt;- bike0 %&gt;% 
+  clean_names() %&gt;% 
+  rename (bikes_hired = number_of_bicycle_hires) %&gt;% 
+  mutate (year = year(day),
+          month = lubridate::month(day, label = TRUE),
+          week = isoweek(day))</code></pre>
+<p><img src="/blogs/blog2_files/figure-html/tfl_month_year_grid-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>It’s interesting to note that during the 2020 lockdown, rentals decreased by half in comparison to other years.</p>
+<p><img src="/blogs/blog2_files/figure-html/tfl_absolute_monthly_change2-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>The second one looks at percentage changes from the expected level of weekly rentals. The two grey shaded rectangles correspond to Q2 (weeks 14-26) and Q4 (weeks 40-52).</p>
+<p><img src="/blogs/blog2_files/figure-html/tfl_percent_change2-1.png" width="100%" style="display: block; margin: auto;" />
+We used the mean to calculate our expected rentals as when we tested using the median it was quite different from the actual numbers.</p>
+</div>

@@ -62,16 +62,16 @@ params:
   image: ''
   name: Your name
   navigation:
-    button1:
-      - name: Get Started
-        url: blogs
-    button2:
-      - name: Log In
-        url: '#'
+    # button1:
+    #   - name: Get Started
+    #     url: blogs
+    # button2:
+    #   - name: Log In
+    #     url: '#'
     links:
       - name: Home
         url: '#'
-      - name: Blogs
+      - name: Portfolio
         url: blogs
       # - name: Generic Blog
       #   url: blogs/tempus
@@ -85,20 +85,20 @@ params:
     showcase:
       - image: pic01.jpg
         subtitle: GDP Components over time and among countries
-        title: GDP Components
+        title: Economics
         url: blogs/gdp_components
       - image: pic02.png
         subtitle: IMDB Ratings - Differences between directors
-        title: IMDB Ratings
+        title: Entertainment
         url: blogs/imdb_ratings
       - image: pic03.jpg
-        subtitle: Lorem Etiam Nullam
-        title: Bike Rentals
+        subtitle: Rentals in TfL Bike Sharing
+        title: Life
         url: blogs/rentals_bike
       - image: pic04.jpg
-        subtitle: Vaccination Rate vs. Trump Vote Rate
-        title: Vaccination and Trump
-        url: blogs/vaccination_trump
+        subtitle: Vaccination Rate vs. Trump Vote Rate | Biden's Vote Rate
+        title: Politics
+        url: blogs/politics
       # - image: pic05.jpg
       #   subtitle: Ipsum Dolor Sit Amet
       #   title: Consequat
