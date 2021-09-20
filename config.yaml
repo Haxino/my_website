@@ -75,8 +75,8 @@ params:
         url: blogs
       # - name: Generic Blog
       #   url: blogs/tempus
-      - name: Elements
-        url: elements.html
+      # - name: Elements
+      #   url: elements.html
     menu: Menu
     subtitle: By HTML5 Up
     title: Forty
@@ -87,14 +87,14 @@ params:
         subtitle: GDP Components over time and among countries
         title: GDP Components
         url: blogs/gdp_components
-      - image: pic02.jpg
+      - image: pic02.png
         subtitle: IMDB Ratings - Differences between directors
         title: IMDB Ratings
         url: blogs/imdb_ratings
       - image: pic03.jpg
         subtitle: Lorem Etiam Nullam
-        title: German Election 2021
-        url: blogs/german_election
+        title: Bike Rentals
+        url: blogs/rentals_bike
       - image: pic04.jpg
         subtitle: Vaccination Rate vs. Trump Vote Rate
         title: Vaccination and Trump
