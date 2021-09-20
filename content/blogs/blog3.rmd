@@ -11,7 +11,7 @@ draft: false
 image: pic08.png
 keywords: ""
 slug: imdb_ratings
-title: IMDB ratings
+title: Entertainment
 ---
 
 ```{r, setup, echo=FALSE}

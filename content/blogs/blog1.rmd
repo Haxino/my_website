@@ -110,7 +110,7 @@ full_table <- left_join(vaccination_number, trump_vote, by = 'fips') %>% left_jo
 #paste0(round(weight/sum(weight)*100,2),"%"))
 ```
 
-```{r}
+```{r, out.width=50%}
 # reproduce graph
 full_table %>% ggplot(aes(x = trump_vote_rate, y = vaccination_rate, size = pop_estimate_2019)) + 
   geom_point(alpha = 0.3) +
@@ -125,7 +125,6 @@ full_table %>% ggplot(aes(x = trump_vote_rate, y = vaccination_rate, size = pop_
   theme(plot.caption = element_text(hjust = 0))
 NULL
 ```
-
 # Challange 2: Biden's Approval Margins
 
 As we saw in class, fivethirtyeight.com has detailed data on [all polls that track the president's approval](https://projects.fivethirtyeight.com/biden-approval-ratings)
