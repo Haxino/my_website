@@ -3,7 +3,7 @@ categories:
 - ""
 - ""
 date: "2017-10-31T22:42:51-05:00"
-description: Homework3 challange2
+description: Replacing values; Pivot table; Wrap multiple plots
 draft: false
 image: pic07.jpg
 keywords: ""
@@ -14,14 +14,19 @@ title: Economics
 <script src="/rmarkdown-libs/header-attrs/header-attrs.js"></script>
 
 
-<div id="challenge-2gdp-components-over-time-and-among-countries" class="section level1">
-<h1>Challenge 2:GDP components over time and among countries</h1>
-<p>At the risk of oversimplifying things, the main components of gross domestic product, GDP are personal consumption (C), business investment (I), government spending (G) and net exports (exports - imports). You can read more about GDP and the different approaches in calculating at the <a href="https://en.wikipedia.org/wiki/Gross_domestic_product">Wikipedia GDP page</a>.</p>
-<p>The GDP data we will look at is from the <a href="https://unstats.un.org/unsd/snaama/Downloads">United Nations’ National Accounts Main Aggregates Database</a>, which contains estimates of total GDP and its components for all countries from 1970 to today. We will look at how GDP and its components have changed over time, and compare different countries and how much each component contributes to that country’s GDP. The file we will work with is <a href="http://unstats.un.org/unsd/amaapi/api/file/6">GDP and its breakdown at constant 2010 prices in US Dollars</a> and it has already been saved in the Data directory. Have a look at the Excel file to see how it is structured and organised</p>
+<div id="gdp-components-over-time-and-among-countries" class="section level1">
+<h1>GDP components over time and among countries</h1>
+<p>At the risk of oversimplifying things, the main components of gross domestic product, GDP are personal consumption (C), business investment (I), government spending (G) and net exports (exports - imports).</p>
+<p>The GDP data we will look at is from the <a href="https://unstats.un.org/unsd/snaama/Downloads">United Nations’ National Accounts Main Aggregates Database</a>, which contains estimates of total GDP and its components for all countries from 1970 to today. We will look at how GDP and its components have changed over time, and compare different countries and how much each component contributes to that country’s GDP. The file we will work with is <a href="http://unstats.un.org/unsd/amaapi/api/file/6">GDP and its breakdown at constant 2010 prices in US Dollars</a> and it has already been saved in the Data directory.</p>
+<div id="step1-load-data" class="section level2">
+<h2>Step1: Load data</h2>
 <pre class="r"><code>UN_GDP_data  &lt;-  read_excel(&quot;D:/Haxino/Documents/LBS/2021Fall/Applied_Stats/am01/data/Download-GDPconstant-USD-countries.xls&quot;, # Excel filename
                 sheet=&quot;Download-GDPconstant-USD-countr&quot;, # Sheet name
                 skip=2) # Number of rows to skip</code></pre>
-<p>The first thing you need to do is to tidy the data, as it is in wide format and you must make it into long, tidy format. Please express all figures in billions (divide values by <code>1e9</code>, or <span class="math inline">\(10^9\)</span>), and you want to rename the indicators into something shorter.</p>
+</div>
+<div id="step2-cleaning-data" class="section level2">
+<h2>Step2: Cleaning data</h2>
+<p>The first thing we need to do is to tidy the data, as it is in wide format and you must make it into long, tidy format. Then we convert all figures in billions (divide values by <code>1e9</code>, or <span class="math inline">\(10^9\)</span>), and rename the indicators into something shorter.Then we select the country we need.</p>
 <pre class="r"><code>tidy_GDP_data  &lt;-  UN_GDP_data %&gt;%  
   pivot_longer( cols = 4:51,
                 names_to = &#39;year&#39;,
@@ -41,13 +46,17 @@ glimpse(tidy_GDP_data)</code></pre>
 ## $ year          &lt;chr&gt; &quot;1970&quot;, &quot;1971&quot;, &quot;1972&quot;, &quot;1973&quot;, &quot;1974&quot;, &quot;1975&quot;, &quot;1976&quot;, ~
 ## $ value         &lt;dbl&gt; 5.56, 5.33, 5.20, 5.75, 6.15, 6.32, 6.37, 6.90, 7.09, 6.~</code></pre>
 <pre class="r"><code># Let us compare GDP components for these 3 countries
-country_list &lt;- c(&quot;United States&quot;,&quot;India&quot;, &quot;Germany&quot;)</code></pre>
-<p>First, can you produce this plot?</p>
-<pre class="r"><code># clean data
-clean_table &lt;- tidy_GDP_data %&gt;% filter(Country %in% c(&quot;United States&quot;,&quot;India&quot;, &quot;Germany&quot;), IndicatorName %in% c(&quot;Gross capital formation&quot;, &quot;Exports&quot;, &quot;Government expenditure&quot;, &quot;Household expenditure&quot;,&quot;Imports&quot;, &quot;&quot;), year                                  &gt;=1970) %&gt;% mutate(year = as.numeric(year)) 
+country_list &lt;- c(&quot;United States&quot;,&quot;India&quot;, &quot;Germany&quot;)
 
-# plot
-clean_table %&gt;% ggplot(aes(x = year, y = value, colour = IndicatorName, group = IndicatorName)) +
+# clean data
+clean_table &lt;- tidy_GDP_data %&gt;% filter(Country %in% c(&quot;United States&quot;,&quot;India&quot;, &quot;Germany&quot;), IndicatorName %in% c(&quot;Gross capital formation&quot;, &quot;Exports&quot;, &quot;Government expenditure&quot;, &quot;Household expenditure&quot;,&quot;Imports&quot;, &quot;&quot;), year                                  &gt;=1970) %&gt;% mutate(year = as.numeric(year)) </code></pre>
+</div>
+<div id="step3-plot" class="section level2">
+<h2>Step3: Plot</h2>
+<div id="plot1-gdp-indicator" class="section level3">
+<h3>plot1: GDP Indicator</h3>
+<p>The first plot show how GDP indicators changed over time in the three country.</p>
+<pre class="r"><code>clean_table %&gt;% ggplot(aes(x = year, y = value, colour = IndicatorName, group = IndicatorName)) +
   geom_smooth(aes(x = year, y = value), se = FALSE, span = 0.2) +
   facet_wrap(~ Country) +
   labs(
@@ -58,12 +67,12 @@ clean_table %&gt;% ggplot(aes(x = year, y = value, colour = IndicatorName, group
   ) +
   theme_bw() +
   NULL</code></pre>
-<p><img src="/blogs/blog4_files/figure-html/unnamed-chunk-3-1.png" width="648" style="display: block; margin: auto;" /></p>
-<p>Secondly, recall that GDP is the sum of Household Expenditure (Consumption <em>C</em>), Gross Capital Formation (business investment <em>I</em>), Government Expenditure (G) and Net Exports (exports - imports). Even though there is an indicator <code>Gross Domestic Product (GDP)</code> in your dataframe, I would like you to calculate it given its components discussed above.</p>
-<blockquote>
-<p>What is the % difference between what you calculated as GDP and the GDP figure included in the dataframe?</p>
-<p>As calculated below, For Germay, the % difference range from 1.0% to 1.04%. THe India range from 1.08% to 0.0%. United States range from 1.0% to 1.04%.</p>
-</blockquote>
+<p><img src="/blogs/blog4_files/figure-html/unnamed-chunk-2-1.png" width="50%" style="display: block; margin: auto;" />
+&gt; In general, all indicators in United States is relatively highest. India is slightly lower than Germany, especially in Exports and Imports. It shows that India and Germany have different focus in terms of economic development.</p>
+</div>
+<div id="plot2-compare-the-given-gdp-value-and-calculated-gdp-value" class="section level3">
+<h3>plot2: compare the given GDP value and calculated GDP value</h3>
+<p>Recall that GDP is the sum of Household Expenditure (Consumption <em>C</em>), Gross Capital Formation (business investment <em>I</em>), Government Expenditure (G) and Net Exports (exports - imports). Even though there is an indicator <code>Gross Domestic Product (GDP)</code> in your dataframe, I calculate it given its components discussed above and compare the percentage difference.</p>
 <pre class="r"><code># calculate GDP
 export &lt;- clean_table %&gt;% 
   filter(IndicatorName == &quot;Exports&quot;) %&gt;% 
@@ -118,7 +127,14 @@ compare_GDP %&gt;%
   ) +
   theme_bw()+
   NULL</code></pre>
-<p><img src="/blogs/blog4_files/figure-html/unnamed-chunk-4-1.png" width="648" style="display: block; margin: auto;" /></p>
+<p><img src="/blogs/blog4_files/figure-html/unnamed-chunk-3-1.png" width="50%" style="display: block; margin: auto;" /></p>
+<blockquote>
+<p>As calculated below, For Germay, the % difference range from 1.0% to 1.04%. THe India range from 1.08% to 0.0%. United States range from 1.0% to 1.04%.</p>
+</blockquote>
+</div>
+<div id="plot3-gdp-components-porportion" class="section level3">
+<h3>plot3: GDP components porportion</h3>
+<p>The plot below shows how the proportion of GDP components change over time in the three countries.</p>
 <pre class="r"><code># plot proportion 
 proportion_table %&gt;% 
   ggplot(aes(x = year, y = proportion, colour = Indicator, group = Indicator)) +
@@ -131,11 +147,13 @@ proportion_table %&gt;%
   ) +
   theme_bw() +
   NULL </code></pre>
-<p><img src="/blogs/blog4_files/figure-html/unnamed-chunk-4-2.png" width="648" style="display: block; margin: auto;" /></p>
-<blockquote>
-<p>What is this last chart telling you? Can you explain in a couple of paragraphs the different dynamic among these three countries?</p>
-<p>Looking at Germany’s GDP breakdown, it’s interesting to note that household expenditures kept a quite steady proportion throughout the whole period, except around the 2008 financial crisis, of which the impact is quite noticeable for all three countries, with Germany’s gross capital formation also having a clear dip around that time. Germany being the only out of the three countries that is part of the European union, it is also interesting to note their exports increasing after the Maastricht, Amsterdam and Lisbon treaties were put into place. On a different note, we would also expect the reunification of the west and east Germanies to have a clear impact on the proportion of government expenditure, yet there does not seem to be.</p>
-<p>India’s GDP breakdown is quite different from Germany’s. The 2008 financial crisis is quite noticeable as well and seems to particularly have impacted exports, as other countries lost disposable income. It is interesting to note that the government expenditure is around 15% of the GDP throughout the whole period, yet that gross capital formation gains a bigger proportion whilst the proportion of household expenditure keeps on decreasing. We can infer that this is due to a growing population, with increased inequalities; bigger companies and more billionaires, but also more poverty, resulting in less household expenditure.</p>
-<p>The United States’ GDP split also showcases the impact of the 2008’s financial crisis, for instance with the Federal Reserve’s help towards the bank creating a small red bump in the late 2000s, early 2010s. Overall, government expenditure’s proportion kept on decreasing as republicans were in office, reducing government spending. It is interesting to note that other major financial crisis did not really impact the way the GDP is split up (2001, 1987).</p>
-</blockquote>
+<p><img src="/blogs/blog4_files/figure-html/unnamed-chunk-4-1.png" width="50%" style="display: block; margin: auto;" />
+&gt;
+&gt; Looking at Germany’s GDP breakdown, it’s interesting to note that household expenditures kept a quite steady proportion throughout the whole period, except around the 2008 financial crisis, of which the impact is quite noticeable for all three countries, with Germany’s gross capital formation also having a clear dip around that time. Germany being the only out of the three countries that is part of the European union, it is also interesting to note their exports increasing after the Maastricht, Amsterdam and Lisbon treaties were put into place. On a different note, we would also expect the reunification of the west and east Germanies to have a clear impact on the proportion of government expenditure, yet there does not seem to be.
+&gt;
+&gt; India’s GDP breakdown is quite different from Germany’s. The 2008 financial crisis is quite noticeable as well and seems to particularly have impacted exports, as other countries lost disposable income. It is interesting to note that the government expenditure is around 15% of the GDP throughout the whole period, yet that gross capital formation gains a bigger proportion whilst the proportion of household expenditure keeps on decreasing. We can infer that this is due to a growing population, with increased inequalities; bigger companies and more billionaires, but also more poverty, resulting in less household expenditure.
+&gt;
+&gt; The United States’ GDP split also showcases the impact of the 2008’s financial crisis, for instance with the Federal Reserve’s help towards the bank creating a small red bump in the late 2000s, early 2010s. Overall, government expenditure’s proportion kept on decreasing as republicans were in office, reducing government spending. It is interesting to note that other major financial crisis did not really impact the way the GDP is split up (2001, 1987).</p>
+</div>
+</div>
 </div>

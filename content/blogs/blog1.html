@@ -3,7 +3,7 @@ categories:
 - ""
 - ""
 date: "2017-10-31T21:28:43-05:00"
-description: "1. download data from Internet; 2. calculate trump vote rate and vacciantion rate seperatly; 3. merge the results into one table; 4. draw the scatter plot"
+description: Download data from Internet; Merge Table; Scatter plot; Date data cleaning; Smoothed line and confidence interval
 draft: false
 image: pic10.jpg
 keywords: ""
@@ -14,17 +14,57 @@ title: Politics
 <script src="/rmarkdown-libs/header-attrs/header-attrs.js"></script>
 
 
-<div id="challenge-1-vaccination-rate-vs.-trump-vote-rate" class="section level1">
-<h1>Challenge 1: Vaccination Rate vs. Trump Vote Rate</h1>
-<p>The purpose of this exercise is to reproduce a plot using your <code>dplyr</code> and <code>ggplot2</code> skills. Read the article <a href="https://acasignups.net/21/07/18/racial-factor-theres-77-counties-which-are-deep-blue-also-low-vaxx-guess-what-they-have">The Racial Factor: There’s 77 Counties Which Are Deep Blue But Also Low-Vaxx. Guess What They Have In Common?</a> and have a look at the attached figure.</p>
-<p><img src="D:/Haxino/Documents/my_website/my_website/images/vaxxes_by_state_red_blue_every_county_070321_1.jpeg" width="90%" style="display: block; margin: auto;" /></p>
-<p>You don’t have to worry about the blue-red backgrouns and don’t worry about replicating it exactly, try and see how far you can get. You’re encouraged to work together if you want to and exchange tips/tricks you figured out– and even though the figure in the original article is from early July 2021, you can use the most recent data.</p>
-<p>Some hints to get you started:</p>
+<div id="i.-vaccination-rate-vs.-trump-vote-rate" class="section level1">
+<h1>I. Vaccination Rate vs. Trump Vote Rate</h1>
+<p>The purpose of this exercise is to produce a plot using your <code>dplyr</code> and <code>ggplot2</code> skills to see the relationship.</p>
+<div id="step1-loading-dataset-from-internet" class="section level2">
+<h2>Step1: loading dataset from Internet</h2>
 <ol style="list-style-type: decimal">
-<li>To get vaccination by county, we will use <a href="https://data.cdc.gov/Vaccinations/COVID-19-Vaccinations-in-the-United-States-County/8xkx-amqh">data from the CDC</a></li>
-<li>You need to get <a href="https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/VOQCHQ">County Presidential Election Returns 2000-2020</a></li>
-<li>Finally, you also need an estimate of the <a href="https://www.ers.usda.gov/webdocs/DataFiles/48747/PopulationEstimates.csv?v=2232">population of each county</a></li>
+<li>Get vaccination by county, use <a href="https://data.cdc.gov/Vaccinations/COVID-19-Vaccinations-in-the-United-States-County/8xkx-amqh">data from the CDC</a></li>
+<li>Get <a href="https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/VOQCHQ">County Presidential Election Returns 2000-2020</a></li>
+<li>Get population from <a href="https://www.ers.usda.gov/webdocs/DataFiles/48747/PopulationEstimates.csv?v=2232">population of each county</a></li>
 </ol>
+<pre class="r"><code># Download CDC vaccination by county
+cdc_url &lt;- &quot;https://data.cdc.gov/api/views/8xkx-amqh/rows.csv?accessType=DOWNLOAD&quot;
+vaccinations &lt;- vroom(cdc_url) %&gt;% 
+  janitor::clean_names() %&gt;%
+  filter(fips != &quot;UNK&quot;) # remove counties that have an unknown (UNK) FIPS code
+
+# Download County Presidential Election Returns
+# https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/VOQCHQ
+election2020_results &lt;- vroom(&quot;D:/Haxino/Documents/LBS/2021Fall/Applied_Stats/am01/data/countypres_2000-2020.csv&quot;) %&gt;%
+  janitor::clean_names() %&gt;%
+
+  # just keep the results for the 2020 election
+  filter(year == &quot;2020&quot;) %&gt;%
+
+  # change original name county_fips to fips, to be consistent with the other two files
+  rename (fips = county_fips)
+
+# Download county population data
+population_url &lt;- &quot;https://www.ers.usda.gov/webdocs/DataFiles/48747/PopulationEstimates.csv?v=2232&quot;
+population &lt;- vroom(population_url) %&gt;%
+  janitor::clean_names() %&gt;%
+
+  # select the latest data, namely 2019
+  select(fips = fip_stxt, pop_estimate_2019) %&gt;%
+
+  # pad FIPS codes with leading zeros, so they are always made up of 5 characters
+  mutate(fips = stringi::stri_pad_left(fips, width=5, pad = &quot;0&quot;))</code></pre>
+</div>
+<div id="step2-merge-tables-and-calculate-rate" class="section level2">
+<h2>Step2: Merge tables and calculate rate</h2>
+<pre class="r"><code>#create trump table
+trump_vote &lt;- election2020_results %&gt;% group_by(fips) %&gt;% filter(candidate == &quot;DONALD J TRUMP&quot;) %&gt;% summarise(votes = sum(candidatevotes)*100)
+
+# create vaccination table
+vaccination_number &lt;- vaccinations %&gt;% filter(date == &#39;09/02/2021&#39;) %&gt;% group_by(fips) %&gt;%  select(fips, series_complete_yes) %&gt;% summarise(series_complete_yes = sum(series_complete_yes)*100)
+
+# create full table
+full_table &lt;- left_join(vaccination_number, trump_vote, by = &#39;fips&#39;) %&gt;% left_join(population, by = &#39;fips&#39;) %&gt;% mutate(vaccination_rate = series_complete_yes/pop_estimate_2019, trump_vote_rate = votes/pop_estimate_2019) %&gt;% filter(vaccination_rate &lt;= 100, trump_vote_rate&lt;= 100)</code></pre>
+</div>
+<div id="step3-draw-scatter-plot" class="section level2">
+<h2>Step3: Draw scatter plot</h2>
 <pre class="r"><code># reproduce graph
 full_table %&gt;% ggplot(aes(x = trump_vote_rate, y = vaccination_rate, size = pop_estimate_2019)) + 
   geom_point(alpha = 0.3) +
@@ -37,55 +77,88 @@ full_table %&gt;% ggplot(aes(x = trump_vote_rate, y = vaccination_rate, size = p
      y = &quot;% of Total Population Vaccination&quot;
     )+
   theme(plot.caption = element_text(hjust = 0))</code></pre>
-<p><img src="/blogs/blog1_files/figure-html/unnamed-chunk-5-1.png" width="648" style="display: block; margin: auto;" /></p>
-<pre class="r"><code>NULL</code></pre>
-<pre><code>## NULL</code></pre>
+<p><img src="/blogs/blog1_files/figure-html/unnamed-chunk-3-1.png" width="50%" style="display: block; margin: auto;" /></p>
+<blockquote>
+<p>Trump’s vote rate seems negatively correlated with vaccination rate.</p>
+</blockquote>
 </div>
-<div id="challange-2-bidens-approval-margins" class="section level1">
-<h1>Challange 2: Biden’s Approval Margins</h1>
-<p>As we saw in class, fivethirtyeight.com has detailed data on <a href="https://projects.fivethirtyeight.com/biden-approval-ratings">all polls that track the president’s approval</a></p>
+</div>
+<div id="ii.-bidens-approval-margins" class="section level1">
+<h1>II. Biden’s Approval Margins</h1>
+<p>The goal is to show how Biden’s vote rate change as time pass since he got into office.</p>
+<div id="step1-download-data-from-internet" class="section level2">
+<h2>Step1: Download data from Internet</h2>
 <pre class="r"><code># Import approval polls data directly off fivethirtyeight website
 approval_polllist &lt;- read_csv(&#39;https://projects.fivethirtyeight.com/biden-approval-data/approval_polllist.csv&#39;) 
-
 glimpse(approval_polllist)</code></pre>
-<pre><code>## Rows: 1,601
+<pre><code>## Rows: 1,597
 ## Columns: 22
 ## $ president           &lt;chr&gt; &quot;Joseph R. Biden Jr.&quot;, &quot;Joseph R. Biden Jr.&quot;, &quot;Jos~
 ## $ subgroup            &lt;chr&gt; &quot;All polls&quot;, &quot;All polls&quot;, &quot;All polls&quot;, &quot;All polls&quot;~
-## $ modeldate           &lt;chr&gt; &quot;9/19/2021&quot;, &quot;9/19/2021&quot;, &quot;9/19/2021&quot;, &quot;9/19/2021&quot;~
-## $ startdate           &lt;chr&gt; &quot;1/31/2021&quot;, &quot;2/1/2021&quot;, &quot;2/1/2021&quot;, &quot;2/2/2021&quot;, &quot;~
-## $ enddate             &lt;chr&gt; &quot;2/2/2021&quot;, &quot;2/3/2021&quot;, &quot;2/3/2021&quot;, &quot;2/4/2021&quot;, &quot;2~
-## $ pollster            &lt;chr&gt; &quot;YouGov&quot;, &quot;Rasmussen Reports/Pulse Opinion Researc~
-## $ grade               &lt;chr&gt; &quot;B+&quot;, &quot;B&quot;, &quot;B&quot;, &quot;B&quot;, &quot;A-&quot;, &quot;B&quot;, &quot;B-&quot;, &quot;B&quot;, &quot;B&quot;, &quot;B~
-## $ samplesize          &lt;dbl&gt; 1500, 1500, 15000, 15000, 1429, 1500, 1005, 15000,~
-## $ population          &lt;chr&gt; &quot;a&quot;, &quot;lv&quot;, &quot;a&quot;, &quot;a&quot;, &quot;a&quot;, &quot;lv&quot;, &quot;a&quot;, &quot;a&quot;, &quot;lv&quot;, &quot;a~
-## $ weight              &lt;dbl&gt; 1.0856, 0.3308, 0.2786, 0.2507, 2.0760, 0.3086, 0.~
+## $ modeldate           &lt;chr&gt; &quot;9/21/2021&quot;, &quot;9/21/2021&quot;, &quot;9/21/2021&quot;, &quot;9/21/2021&quot;~
+## $ startdate           &lt;chr&gt; &quot;2/3/2021&quot;, &quot;2/5/2021&quot;, &quot;2/5/2021&quot;, &quot;2/4/2021&quot;, &quot;2~
+## $ enddate             &lt;chr&gt; &quot;2/7/2021&quot;, &quot;2/7/2021&quot;, &quot;2/7/2021&quot;, &quot;2/8/2021&quot;, &quot;2~
+## $ pollster            &lt;chr&gt; &quot;Rasmussen Reports/Pulse Opinion Research&quot;, &quot;Morni~
+## $ grade               &lt;chr&gt; &quot;B&quot;, &quot;B&quot;, &quot;B&quot;, &quot;B&quot;, &quot;B+&quot;, &quot;B&quot;, &quot;B&quot;, &quot;B&quot;, &quot;B+&quot;, &quot;B&quot;~
+## $ samplesize          &lt;dbl&gt; 1500, 15000, 1986, 1500, 2508, 15000, 15000, 1500,~
+## $ population          &lt;chr&gt; &quot;lv&quot;, &quot;a&quot;, &quot;rv&quot;, &quot;lv&quot;, &quot;a&quot;, &quot;a&quot;, &quot;a&quot;, &quot;lv&quot;, &quot;a&quot;, &quot;~
+## $ weight              &lt;dbl&gt; 0.192, 0.265, 0.105, 0.537, 1.588, 0.239, 0.220, 0~
 ## $ influence           &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,~
-## $ approve             &lt;dbl&gt; 46, 52, 54, 54, 49, 49, 57, 54, 50, 54, 60, 59, 51~
-## $ disapprove          &lt;dbl&gt; 38, 46, 33, 34, 39, 48, 34, 34, 47, 34, 32, 35, 46~
-## $ adjusted_approve    &lt;dbl&gt; 47.3, 54.4, 52.5, 52.5, 49.6, 51.4, 55.9, 52.5, 52~
-## $ adjusted_disapprove &lt;dbl&gt; 38.3, 40.1, 36.3, 37.3, 39.1, 42.1, 35.1, 37.3, 41~
+## $ approve             &lt;dbl&gt; 50.0, 55.0, 59.0, 51.0, 61.0, 55.0, 55.0, 51.0, 50~
+## $ disapprove          &lt;dbl&gt; 47.0, 33.0, 35.0, 46.0, 39.0, 33.0, 33.0, 47.0, 37~
+## $ adjusted_approve    &lt;dbl&gt; 52.5, 53.6, 57.6, 53.5, 62.3, 53.6, 53.6, 53.5, 51~
+## $ adjusted_disapprove &lt;dbl&gt; 41.1, 36.3, 38.3, 40.1, 39.3, 36.3, 36.3, 41.1, 37~
 ## $ multiversions       &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA~
-## $ tracking            &lt;lgl&gt; NA, TRUE, TRUE, TRUE, NA, TRUE, NA, TRUE, TRUE, TR~
-## $ url                 &lt;chr&gt; &quot;https://docs.cdn.yougov.com/460mactkmh/econTabRep~
-## $ poll_id             &lt;dbl&gt; 74332, 74338, 74366, 74367, 74348, 74347, 74345, 7~
-## $ question_id         &lt;dbl&gt; 139593, 139642, 139733, 139734, 139668, 139654, 13~
-## $ createddate         &lt;chr&gt; &quot;2/3/2021&quot;, &quot;2/4/2021&quot;, &quot;2/11/2021&quot;, &quot;2/11/2021&quot;, ~
-## $ timestamp           &lt;chr&gt; &quot;13:37:08 19 Sep 2021&quot;, &quot;13:37:08 19 Sep 2021&quot;, &quot;1~</code></pre>
-<pre class="r"><code># Use `lubridate` to fix dates, as they are given as charactersa
-clean_approval_polllist &lt;- approval_polllist %&gt;% mutate(
+## $ tracking            &lt;lgl&gt; TRUE, TRUE, NA, TRUE, NA, TRUE, TRUE, TRUE, NA, TR~
+## $ url                 &lt;chr&gt; &quot;https://www.rasmussenreports.com/public_content/p~
+## $ poll_id             &lt;dbl&gt; 74349, 74372, 74351, 74352, 74357, 74370, 74371, 7~
+## $ question_id         &lt;dbl&gt; 139669, 139746, 139673, 139675, 139683, 139738, 13~
+## $ createddate         &lt;chr&gt; &quot;2/8/2021&quot;, &quot;2/11/2021&quot;, &quot;2/8/2021&quot;, &quot;2/9/2021&quot;, &quot;~
+## $ timestamp           &lt;chr&gt; &quot;16:18:09 21 Sep 2021&quot;, &quot;16:18:09 21 Sep 2021&quot;, &quot;1~</code></pre>
+</div>
+<div id="step2-cleaning-data" class="section level2">
+<h2>Step2: Cleaning data</h2>
+<p>Use <code>lubridate</code> to fix dates, as they are given as characters. Then calculate the average net approval rate (approve- disapprove) and the confidence interval for each week since he got into office</p>
+<pre class="r"><code>clean_approval_polllist &lt;- approval_polllist %&gt;% mutate(
   startdate = mdy(approval_polllist$startdate),
   enddate = mdy(approval_polllist$enddate)  
-)</code></pre>
-<div id="create-a-plot" class="section level2">
-<h2>Create a plot</h2>
-<p>We calculate the average net approval rate (approve- disapprove) for each week since he got into office. We plot the net approval, along with its 95% confidence interval.</p>
-<p>The plot should look like this:</p>
-<p><img src="/blogs/blog1_files/figure-html/trump2-1.png" width="100%" style="display: block; margin: auto;" />
-`</p>
+)
+
+clean_data &lt;- clean_approval_polllist %&gt;% filter(subgroup == &quot;All polls&quot;) %&gt;%
+  select(enddate, approve, disapprove) %&gt;%
+  mutate(week = week(enddate),
+         net_approval_rate = approve - disapprove)
+
+# calculate sample mean and CIs
+CI_table &lt;- clean_data %&gt;% group_by(week) %&gt;% 
+  summarise(mean = mean(net_approval_rate), 
+            lower = mean - qt(0.975, n()-1) * (sd(net_approval_rate)/sqrt(n())),
+            upper = mean + qt(0.975, n()-1) * (sd(net_approval_rate)/sqrt(n()))
+  )</code></pre>
 </div>
-<div id="compare-confidence-intervals" class="section level2">
-<h2>Compare Confidence Intervals</h2>
-<p>The confidence interval for week 4 is [5.28-23.60] in comparison to the confidence interval for week 25 which is [9.79-13.47]. The widths of these two confidence intervals are different, 18.32 for week 4 and 3.68 for week 25. This is due to the difference in sample size, as there were 8 polls in week 4 but 28 polls in week 25.</p>
+<div id="step3-produce-plot-and-confidence-interval" class="section level2">
+<h2>Step3: Produce plot and confidence interval</h2>
+<p>Plot the net approval, along with its 95% confidence interval.</p>
+<pre class="r"><code>CI_table %&gt;% ggplot() +
+  geom_line(aes(x = week, y = mean), colour = &quot;Red&quot;, size = 0.2) +
+  geom_line(aes(x = week, y = lower), colour = &quot;Red&quot;, size = 0.2) +
+  geom_line(aes(x = week, y = upper), colour = &quot;Red&quot;, size = 0.2) +
+  geom_point(aes(x = week, y = mean), colour = &quot;Red&quot;, size = 1) +
+  geom_smooth(aes(x = week, y = mean), colour = &quot;Blue&quot;, size = 1, se = FALSE) +
+  geom_ribbon(aes(x = week, ymin = lower, ymax = upper), fill = &quot;grey70&quot;, alpha = 0.3) +
+  geom_hline(aes(yintercept = 0), colour = &quot;Orange&quot;, size = 2) +
+  labs(
+    title = &quot;Estimating Approval Margin (approve-disapprove) for Joe Biden&quot;,
+    subtitle = &quot;Weekly average of all polls&quot;,
+    x = &quot;Week of the year&quot;,
+    y = &quot;Average Approval Margin(Approve - Disapprove)&quot;
+  )</code></pre>
+<p><img src="/blogs/blog1_files/figure-html/unnamed-chunk-6-1.png" width="50%" style="display: block; margin: auto;" /></p>
+<blockquote>
+<p>In general, Biden’s average approval margin decreased in increarsing speed after he got into the office. People who used to support him trun into the opposite side.</p>
+</blockquote>
+<blockquote>
+<p>The confidence interval for week 4 is [5.28-23.60] in comparison to the confidence interval for week 25 which is [9.79-13.47]. The widths of these two confidence intervals are different, 18.32 for week 4 and 3.68 for week 25. This is due to the difference in sample size, as there were 8 polls in week 4 but 28 polls in week 25. As the sample size increase, the estimation become more accurate so the confidence interval narrow down.</p>
+</blockquote>
 </div>
 </div>

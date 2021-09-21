@@ -3,7 +3,7 @@ categories:
 - ""
 - ""
 date: "2017-10-31T22:26:09-05:00"
-description: Lorem Etiam Nullam
+description: Facet_grip; shadow between line
 draft: false
 image: pic09.jpg
 keywords: ""
@@ -40,9 +40,10 @@ library(readxl)
 library(vroom)
 ```
 
-# Challenge 1: Excess rentals in TfL bike sharing
+# Excess rentals in TfL bike sharing
+The goal is to analyze how TfL bike sharing rentals change by time.
 
-
+## Step1: Load data from Internet
 ```{r, get_tfl_data, cache=TRUE}
 url <- "https://data.london.gov.uk/download/number-bicycle-hires/ac29363e-e0cb-47cc-a97a-e216d900a6b0/tfl-daily-cycle-hires.xlsx"
 
@@ -62,11 +63,9 @@ bike <- bike0 %>%
           month = lubridate::month(day, label = TRUE),
           week = isoweek(day))
 ```
-
-
-```{r tfl_month_year_grid, echo=FALSE, out.width="100%"}
-
-# knitr::include_graphics(here::here("images", "tfl_distributions_monthly.png"), error = FALSE)
+## Step2: drawing plot
+plot1: use facet_grid() function
+```{r tfl_month_year_grid, echo=FALSE, out.width="50%"}
 bike%>%
   ggplot(aes(x=bikes_hired))+
   geom_density()+
@@ -83,11 +82,10 @@ bike%>%
 
 ```
 
-It's interesting to note that during the 2020 lockdown, rentals decreased by half in comparison to other years. 
 
-```{r tfl_absolute_monthly_change, echo=FALSE, out.width="100%"}
-#knitr::include_graphics(here::here("images", "tfl_monthly.png"), error = FALSE)
-#library(lubridate)
+
+plot2 and 3: use geom_ribbon() function to draw shadow between line
+```{r tfl_absolute_monthly_change, echo=FALSE, out.width="50%"}
 
 # tables
 table_1 <- bike %>%
@@ -109,9 +107,7 @@ merge_table <- left_join(table_3,table_2,by = "month")
 ```
 
 
-```{r tfl_absolute_monthly_change2, echo=FALSE, out.width="100%"}
-#plot
-
+```{r tfl_absolute_monthly_change2, echo=FALSE, out.width="50%"}
 merge_table %>% ggplot(aes(x = month, group =1))+
   geom_line(aes(x = month, y = monthly_bike2), color = "black") +
   geom_line(aes(x = month, y=monthly_average), color = "blue", size = 2)+
@@ -126,8 +122,6 @@ merge_table %>% ggplot(aes(x = month, group =1))+
   
 
 ```
-
-The second one looks at percentage changes from the expected level of weekly rentals. The two grey shaded rectangles correspond to Q2 (weeks 14-26) and Q4 (weeks 40-52).
 
 ```{r tfl_percent_change, echo=FALSE, out.width="100%"}
 #knitr::include_graphics(here::here("images", "tfl_weekly.png"), error = FALSE)
@@ -155,11 +149,6 @@ merge_table <- left_join(table_4, table_2, by="week")%>%
                             "green",
                             "red"))
 
-```
-
-```{r tfl_percent_change2, echo=FALSE, out.width="100%"}
-# plot
-
 m <- 0
  merge_table %>% 
    ggplot(aes(x=week,y=percentage_change,group=1))+
@@ -175,8 +164,10 @@ m <- 0
    labs(title = "Weekly changes in TfL bike rentals", subtitle = "% Change from weekly averages calculated between 2016-2019",y="%", x="Week")+
    geom_rug(mapping = aes(color=color_id),sides="b" )+
    scale_color_manual(values=c("green","red"))
-   
-
 
 ```
-We used the mean to calculate our expected rentals as when we tested using the median it was quite different from the actual numbers.
+> We used the mean to calculate our expected rentals as when we tested using the median it was quite different from the actual numbers. 
+
+> The second one looks at percentage changes from the expected level of weekly rentals. The two grey shaded rectangles correspond to Q2 (weeks 14-26) and Q4 (weeks 40-52).
+
+> It's interesting to note that during the 2020 lockdown, rentals decreased by half in comparison to other years. 

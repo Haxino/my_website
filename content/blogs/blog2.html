@@ -3,7 +3,7 @@ categories:
 - ""
 - ""
 date: "2017-10-31T22:26:09-05:00"
-description: Lorem Etiam Nullam
+description: Facet_grip; shadow between line
 draft: false
 image: pic09.jpg
 keywords: ""
@@ -14,8 +14,11 @@ title: Life
 <script src="/rmarkdown-libs/header-attrs/header-attrs.js"></script>
 
 
-<div id="challenge-1-excess-rentals-in-tfl-bike-sharing" class="section level1">
-<h1>Challenge 1: Excess rentals in TfL bike sharing</h1>
+<div id="excess-rentals-in-tfl-bike-sharing" class="section level1">
+<h1>Excess rentals in TfL bike sharing</h1>
+<p>The goal is to analyze how TfL bike sharing rentals change by time.</p>
+<div id="step1-load-data-from-internet" class="section level2">
+<h2>Step1: Load data from Internet</h2>
 <pre class="r"><code>url &lt;- &quot;https://data.london.gov.uk/download/number-bicycle-hires/ac29363e-e0cb-47cc-a97a-e216d900a6b0/tfl-daily-cycle-hires.xlsx&quot;
 
 # Download TFL data to temporary file
@@ -38,10 +41,20 @@ bike &lt;- bike0 %&gt;%
   mutate (year = year(day),
           month = lubridate::month(day, label = TRUE),
           week = isoweek(day))</code></pre>
-<p><img src="/blogs/blog2_files/figure-html/tfl_month_year_grid-1.png" width="100%" style="display: block; margin: auto;" /></p>
-<p>It’s interesting to note that during the 2020 lockdown, rentals decreased by half in comparison to other years.</p>
-<p><img src="/blogs/blog2_files/figure-html/tfl_absolute_monthly_change2-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="step2-drawing-plot" class="section level2">
+<h2>Step2: drawing plot</h2>
+<p>plot1: use facet_grid() function
+<img src="/blogs/blog2_files/figure-html/tfl_month_year_grid-1.png" width="50%" style="display: block; margin: auto;" /></p>
+<p>plot2 and 3: use geom_ribbon() function to draw shadow between line</p>
+<p><img src="/blogs/blog2_files/figure-html/tfl_absolute_monthly_change2-1.png" width="50%" style="display: block; margin: auto;" /></p>
+<p><img src="/blogs/blog2_files/figure-html/tfl_percent_change-1.png" width="100%" style="display: block; margin: auto;" />
+&gt; We used the mean to calculate our expected rentals as when we tested using the median it was quite different from the actual numbers.</p>
+<blockquote>
 <p>The second one looks at percentage changes from the expected level of weekly rentals. The two grey shaded rectangles correspond to Q2 (weeks 14-26) and Q4 (weeks 40-52).</p>
-<p><img src="/blogs/blog2_files/figure-html/tfl_percent_change2-1.png" width="100%" style="display: block; margin: auto;" />
-We used the mean to calculate our expected rentals as when we tested using the median it was quite different from the actual numbers.</p>
+</blockquote>
+<blockquote>
+<p>It’s interesting to note that during the 2020 lockdown, rentals decreased by half in comparison to other years.</p>
+</blockquote>
+</div>
 </div>

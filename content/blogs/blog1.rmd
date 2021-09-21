@@ -27,7 +27,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r load-libraries, warning=FALSE, message=FALSE, echo=FALSE}
+```{r load-libraries, echo=FALSE}
 library(tidyverse)  # Load ggplot2, dplyr, and all the other tidyverse packages
 library(mosaic)
 library(ggthemes)
@@ -44,7 +44,7 @@ library(reshape2)
 ```
 
 # I. Vaccination Rate vs. Trump Vote Rate
-The purpose of this exercise is to reproduce a plot using your `dplyr` and `ggplot2` skills.
+The purpose of this exercise is to produce a plot using your `dplyr` and `ggplot2` skills to see the relationship.
 
 ## Step1: loading dataset from Internet
 1.  Get vaccination by county, use [data from the CDC](https://data.cdc.gov/Vaccinations/COVID-19-Vaccinations-in-the-United-States-County/8xkx-amqh)
@@ -82,7 +82,7 @@ population <- vroom(population_url) %>%
 ```
 
 ## Step2: Merge tables and calculate rate
-```{r, echo=FALSE, cache=TRUE}
+```{r, cache=TRUE}
 #create trump table
 trump_vote <- election2020_results %>% group_by(fips) %>% filter(candidate == "DONALD J TRUMP") %>% summarise(votes = sum(candidatevotes)*100)
 
@@ -94,7 +94,7 @@ full_table <- left_join(vaccination_number, trump_vote, by = 'fips') %>% left_jo
 ```
 
 ## Step3: Draw scatter plot
-```{r, out.width=50%}
+```{r, out.width="50%"}
 # reproduce graph
 full_table %>% ggplot(aes(x = trump_vote_rate, y = vaccination_rate, size = pop_estimate_2019)) + 
   geom_point(alpha = 0.3) +
@@ -108,6 +108,8 @@ full_table %>% ggplot(aes(x = trump_vote_rate, y = vaccination_rate, size = pop_
     )+
   theme(plot.caption = element_text(hjust = 0))
 ```
+
+> Trump's vote rate seems negatively correlated with vaccination rate. 
 
 # II. Biden's Approval Margins
 
@@ -146,7 +148,7 @@ CI_table <- clean_data %>% group_by(week) %>%
 ## Step3: Produce plot and confidence interval
 Plot the net approval, along with its 95% confidence interval. 
 
-```{r trump2, out.width="50%"}
+```{r, out.width="50%"}
 CI_table %>% ggplot() +
   geom_line(aes(x = week, y = mean), colour = "Red", size = 0.2) +
   geom_line(aes(x = week, y = lower), colour = "Red", size = 0.2) +
@@ -164,6 +166,6 @@ CI_table %>% ggplot() +
 
 ```
 
-In general, Biden's average approval margin decreased in increarsing speed after he got into the office. People who used to support him trun into the opposite side. 
+> In general, Biden's average approval margin decreased in increarsing speed after he got into the office. People who used to support him trun into the opposite side. 
 
-The confidence interval for week 4 is [5.28-23.60] in comparison to the confidence interval for week 25 which is [9.79-13.47]. The widths of these two confidence intervals are different, 18.32 for week 4 and 3.68 for week 25. This is due to the difference in sample size, as there were 8 polls in week 4 but 28 polls in week 25. As the sample size increase, the estimation become more accurate so the confidence interval narrow down. 
+> The confidence interval for week 4 is [5.28-23.60] in comparison to the confidence interval for week 25 which is [9.79-13.47]. The widths of these two confidence intervals are different, 18.32 for week 4 and 3.68 for week 25. This is due to the difference in sample size, as there were 8 polls in week 4 but 28 polls in week 25. As the sample size increase, the estimation become more accurate so the confidence interval narrow down. 
