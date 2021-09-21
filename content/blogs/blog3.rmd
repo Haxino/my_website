@@ -3,7 +3,7 @@ categories:
 - ""
 - ""
 date: "2017-10-31T22:26:13-05:00"
-description: Confidence Interval, Hypothesis Test
+description: Confidence Interval; Hypothesis Test; Plot stragint line and shadown
 draft: false
 image: pic08.png
 keywords: ""
@@ -70,7 +70,8 @@ clean_table %>% ggplot() +
   ) +
   theme_bw()
 ```
->The sample mean of Spielberg's mean IMDB ratings is 7.57 and the confidence interval range from 7.27 to 7.87. The sample mean of Burton's mean IMDB ratings is 6.93 and the confidence interval from 6.53 to 7.33. 
+
+> The sample mean of Spielberg's mean IMDB ratings is 7.57 and the confidence interval range from 7.27 to 7.87. The sample mean of Burton's mean IMDB ratings is 6.93 and the confidence interval from 6.53 to 7.33. 
 
 
 ## Step3: Hypothesis Test and t-statistics

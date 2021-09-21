@@ -95,7 +95,7 @@ params:
         title: Life
         url: blogs/rentals_bike
       - image: pic04.jpg
-        subtitle: Vaccination Rate vs. Trump Vote Rate | Biden's Vote Rate
+        subtitle: Vaccination Rate vs. Trump Vote Rate; Biden's Vote Rate
         title: Politics
         url: blogs/politics
       # - image: pic05.jpg
